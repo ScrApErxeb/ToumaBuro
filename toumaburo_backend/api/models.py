@@ -63,3 +63,5 @@ class DemandeService(models.Model):
 
     def __str__(self):
         return f"Demande de {self.utilisateur.username} pour {self.service.nom}"
+
+        # cool
