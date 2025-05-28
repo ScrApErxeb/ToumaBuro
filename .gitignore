@@ -1,0 +1,36 @@
+# Python/Django
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.env
+myvenv/  # Ou le nom de votre environnement virtuel
+venv/
+instance/
+migrations/  # Généralement, on les commit, mais dans certains workflows...
+staticfiles/
+media/  # Si vous ne voulez pas suivre les fichiers uploadés par l'utilisateur
+.DS_Store  # Fichiers macOS
+
+# React
+node_modules/
+build/
+package-lock.json  # Généralement commité, mais peut être ignoré si les équipes gèrent les dépendances différemment
+yarn.lock       # Généralement commité, mais peut être ignoré si les équipes gèrent les dépendances différemment
+.env.local
+.env.development.local
+.env.test.local
+
+# Général
+*.log
+*.swp
+*.swo
+.vscode/
+.idea/
+*.sqlite3  # Votre fichier de base de données SQLite local (à ignorer en production)
+
+# Dépendances installées (peut varier selon votre setup)
+# Si vous commitez votre environnement virtuel, vous n'avez pas besoin de ceci
+# /toumaburo_backend/myvenv/lib/
+# /toumaburo_backend/myvenv/bin/
+# /frontend/node_modules/
