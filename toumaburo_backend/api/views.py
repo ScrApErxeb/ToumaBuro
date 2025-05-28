@@ -100,3 +100,16 @@ class PrestatairesParServiceEtLocalisationListView(generics.ListAPIView):
 
         distance = R * c
         return distance
+    
+
+
+
+
+
+class AvisParPrestataireListView(generics.ListAPIView):
+    serializer_class = AvisSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        prestataire_id = self.kwargs['prestataire_id']
+        return Avis.objects.filter(prestataire_id=prestataire_id).order_by('-date_creation')

@@ -26,12 +26,13 @@ class OffreServiceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AvisSerializer(serializers.ModelSerializer):
-    utilisateur = UserSerializer(read_only=True)
-    prestataire = PrestataireSerializer(read_only=True)
+    utilisateur_nom = serializers.CharField(source='utilisateur.username', read_only=True)
 
     class Meta:
         model = Avis
-        fields = '__all__'
+        fields = ['id', 'prestataire', 'utilisateur', 'utilisateur_nom', 'note', 'commentaire', 'date_creation']
+        read_only_fields = ['id', 'prestataire', 'utilisateur_nom', 'date_creation']
+
 
 class DemandeServiceSerializer(serializers.ModelSerializer):
     utilisateur = UserSerializer(read_only=True)

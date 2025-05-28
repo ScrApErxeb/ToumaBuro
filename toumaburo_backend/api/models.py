@@ -35,7 +35,10 @@ class OffreService(models.Model):
 class Avis(models.Model):
     utilisateur = models.ForeignKey(User, on_delete=models.CASCADE)
     prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE)
-    note = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    note = models.IntegerField(
+        choices=[(1, '1 étoile'), (2, '2 étoiles'), (3, '3 étoiles'), (4, '4 étoiles'), (5, '5 étoiles')],
+        default=5
+    )
     commentaire = models.TextField(blank=True, null=True)
     date_creation = models.DateTimeField(auto_now_add=True)
 
