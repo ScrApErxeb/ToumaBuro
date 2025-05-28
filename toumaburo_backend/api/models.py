@@ -32,18 +32,25 @@ class OffreService(models.Model):
     def __str__(self):
         return f"{self.prestataire.nom} - {self.service.nom}"
 
+from django.db import models
+from django.contrib.auth.models import User
+
 class Avis(models.Model):
-    utilisateur = models.ForeignKey(User, on_delete=models.CASCADE)
-    prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE)
+    prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE, related_name='avis')
+    utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     note = models.IntegerField(
         choices=[(1, '1 étoile'), (2, '2 étoiles'), (3, '3 étoiles'), (4, '4 étoiles'), (5, '5 étoiles')],
         default=5
     )
     commentaire = models.TextField(blank=True, null=True)
     date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('prestataire', 'utilisateur')
 
     def __str__(self):
-        return f"Avis de {self.utilisateur.username} pour {self.prestataire.nom}"
+        return f"Avis de {self.utilisateur} pour {self.prestataire}"
 
 class DemandeService(models.Model):
     utilisateur = models.ForeignKey(User, on_delete=models.CASCADE)

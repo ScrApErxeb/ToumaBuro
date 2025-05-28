@@ -26,12 +26,14 @@ class OffreServiceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AvisSerializer(serializers.ModelSerializer):
+    utilisateur = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), default=serializers.CurrentUserDefault())
     utilisateur_nom = serializers.CharField(source='utilisateur.username', read_only=True)
 
     class Meta:
         model = Avis
-        fields = ['id', 'prestataire', 'utilisateur', 'utilisateur_nom', 'note', 'commentaire', 'date_creation']
-        read_only_fields = ['id', 'prestataire', 'utilisateur_nom', 'date_creation']
+        fields = ['id', 'prestataire', 'utilisateur', 'utilisateur_nom', 'note', 'commentaire', 'date_creation', 'date_modification']
+        read_only_fields = ['id', 'prestataire', 'utilisateur_nom', 'date_creation', 'date_modification']
+        extra_kwargs = {'prestataire': {'write_only': True}} # L'ID du prestataire est fourni lors de la création/mise à jour
 
 
 class DemandeServiceSerializer(serializers.ModelSerializer):

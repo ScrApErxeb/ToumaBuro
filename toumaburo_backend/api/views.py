@@ -113,3 +113,39 @@ class AvisParPrestataireListView(generics.ListAPIView):
     def get_queryset(self):
         prestataire_id = self.kwargs['prestataire_id']
         return Avis.objects.filter(prestataire_id=prestataire_id).order_by('-date_creation')
+    
+
+
+
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import Prestataire, Avis
+from .serializers import AvisSerializer
+
+class AvisCreateUpdateView(generics.CreateAPIView):
+    serializer_class = AvisSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        prestataire_id = self.kwargs['prestataire_id']
+        prestataire = Prestataire.objects.get(pk=prestataire_id)
+        try:
+            # Tenter de récupérer un avis existant de l'utilisateur pour ce prestataire
+            existing_avis = Avis.objects.get(prestataire=prestataire, utilisateur=self.request.user)
+            # Mettre à jour l'avis existant avec les nouvelles données
+            serializer.update(existing_avis, serializer.validated_data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Avis.DoesNotExist:
+            # Créer un nouvel avis
+            serializer.save(prestataire=prestataire, utilisateur=self.request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class AvisParPrestataireListView(generics.ListAPIView):
+    serializer_class = AvisSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        prestataire_id = self.kwargs['prestataire_id']
+        return Avis.objects.filter(prestataire_id=prestataire_id).order_by('-date_creation')
