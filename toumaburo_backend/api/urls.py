@@ -16,8 +16,7 @@ router.register(r'demandes', views.DemandeServiceViewSet, basename='demande')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('prestataires-par-service/', views.PrestatairesParServiceEtLocalisationListView.as_view(), name='prestataires-par-service'),
-    path('demandes/creer/', views.DemandeServiceCreateView.as_view(), name='creer-demande'),
+    path('prestataires-par-service/', views.PrestatairesParServiceEtLocalisationListView.as_view(), name='prestataires-par-service'),    path('demandes/creer/', views.DemandeServiceCreateView.as_view(), name='creer-demande'),
     path('prestataires/<int:prestataire_id>/avis/', views.AvisParPrestataireListView.as_view(), name='avis-prestataire'),
     path('prestataires/<int:prestataire_id>/avis/create_update/', views.AvisCreateUpdateView.as_view(), name='avis-create-update'),
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

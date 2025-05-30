@@ -4,6 +4,7 @@ from .models import Prestataire, Service, OffreService, Avis, DemandeService
 from .serializers import PrestataireSerializer, ServiceSerializer, OffreServiceSerializer, AvisSerializer, DemandeServiceSerializer
 import requests
 import math
+from django.db.models import Q
 
 class PrestataireViewSet(viewsets.ModelViewSet):
     queryset = Prestataire.objects.all()
@@ -46,9 +47,13 @@ class PrestatairesParServiceEtLocalisationListView(generics.ListAPIView):
     def get_queryset(self):
         service_id = self.request.query_params.get('service')
         localisation = self.request.query_params.get('localisation')
+        query = self.request.query_params.get('q')
         rayon_recherche = self.request.query_params.get('rayon')
 
-        queryset = Prestataire.objects.filter(offreservice__service_id=service_id).distinct()
+        queryset = Prestataire.objects.all() # Commencez par tous les prestataires
+
+        if service_id:
+            queryset = queryset.filter(offreservice__service_id=service_id).distinct()
 
         if localisation:
             geocoding_api_url = f"VOTRE_API_DE_GEOCODAGE?q={localisation}&key=VOTRE_CLE_API"
@@ -76,16 +81,22 @@ class PrestatairesParServiceEtLocalisationListView(generics.ListAPIView):
                                             filtered_prestataires.append(prestataire)
                                     else:
                                         filtered_prestataires.append(prestataire)
-                    return filtered_prestataires
+                    queryset = filtered_prestataires
                 else:
-                    # Si la géocodage de la localisation échoue, retourner tous les prestataires pour le service
-                    return queryset
+                    # Si la géocodage de la localisation échoue, retourner tous les prestataires (déjà initialisé)
+                    pass
             except requests.exceptions.RequestException as e:
                 print(f"Erreur de requête de géocodage: {e}")
-                return queryset
             except (KeyError, IndexError, ValueError) as e:
                 print(f"Erreur de parsing de la réponse de géocodage: {e}")
-                return queryset
+
+        if query:
+            queryset = queryset.filter(
+                Q(nom__icontains=query) |
+                Q(etablissement__icontains=query) |
+                Q(offreservice__service__nom__icontains=query)
+            ).distinct()
+
         return queryset
 
     def calculate_distance(self, lat1, lon1, lat2, lon2):
@@ -100,7 +111,6 @@ class PrestatairesParServiceEtLocalisationListView(generics.ListAPIView):
 
         distance = R * c
         return distance
-    
 
 
 
@@ -113,7 +123,7 @@ class AvisParPrestataireListView(generics.ListAPIView):
     def get_queryset(self):
         prestataire_id = self.kwargs['prestataire_id']
         return Avis.objects.filter(prestataire_id=prestataire_id).order_by('-date_creation')
-    
+
 
 
 
