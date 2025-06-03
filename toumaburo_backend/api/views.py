@@ -40,78 +40,40 @@ class DemandeServiceCreateView(generics.CreateAPIView):
         serializer.save(utilisateur=self.request.user)
 
 
+from rest_framework import generics
+from .models import Prestataire, Service
+from .serializers import PrestataireSerializer
+from django.db.models import Q
+
 class PrestatairesParServiceEtLocalisationListView(generics.ListAPIView):
     serializer_class = PrestataireSerializer
-    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        service_id = self.request.query_params.get('service')
+        service_nom = self.request.query_params.get('service')
         localisation = self.request.query_params.get('localisation')
         query = self.request.query_params.get('q')
-        rayon_recherche = self.request.query_params.get('rayon')
+        queryset = Prestataire.objects.all()
 
-        queryset = Prestataire.objects.all() # Commencez par tous les prestataires
-
-        if service_id:
-            queryset = queryset.filter(offreservice__service_id=service_id).distinct()
-
-        if localisation:
-            geocoding_api_url = f"VOTRE_API_DE_GEOCODAGE?q={localisation}&key=VOTRE_CLE_API"
+        if service_nom:
             try:
-                geocoding_response = requests.get(geocoding_api_url).json()
-                if geocoding_response and geocoding_response.get('results'):
-                    user_latitude = geocoding_response['results'][0]['geometry']['location']['lat']
-                    user_longitude = geocoding_response['results'][0]['geometry']['location']['lng']
-
-                    filtered_prestataires = []
-                    for prestataire in queryset:
-                        if prestataire.zone_couverture_rayon is not None and prestataire.etablissement:
-                            etablissement_geocoding_url = f"VOTRE_API_DE_GEOCODAGE?q={prestataire.etablissement}&key=VOTRE_CLE_API"
-                            etablissement_response = requests.get(etablissement_geocoding_url).json()
-                            if etablissement_response and etablissement_response.get('results'):
-                                prestataire_latitude = etablissement_response['results'][0]['geometry']['location']['lat']
-                                prestataire_longitude = etablissement_response['results'][0]['geometry']['location']['lng']
-
-                                distance = self.calculate_distance(user_latitude, user_longitude, prestataire_latitude, prestataire_longitude)
-
-                                # Le rayon de couverture est en km dans le modèle, la distance est en mètres
-                                if distance <= prestataire.zone_couverture_rayon * 1000:
-                                    if rayon_recherche:
-                                        if distance <= float(rayon_recherche) * 1000:
-                                            filtered_prestataires.append(prestataire)
-                                    else:
-                                        filtered_prestataires.append(prestataire)
-                    queryset = filtered_prestataires
-                else:
-                    # Si la géocodage de la localisation échoue, retourner tous les prestataires (déjà initialisé)
-                    pass
-            except requests.exceptions.RequestException as e:
-                print(f"Erreur de requête de géocodage: {e}")
-            except (KeyError, IndexError, ValueError) as e:
-                print(f"Erreur de parsing de la réponse de géocodage: {e}")
+                service = Service.objects.get(nom__iexact=service_nom)
+                queryset = queryset.filter(services_offerts=service)
+            except Service.DoesNotExist:
+                queryset = Prestataire.objects.none()
 
         if query:
             queryset = queryset.filter(
                 Q(nom__icontains=query) |
+                Q(description__icontains=query) |
+                Q(services_offerts__nom__icontains=query) |
                 Q(etablissement__icontains=query) |
-                Q(offreservice__service__nom__icontains=query)
+                Q(zone_couverture__icontains=query)
             ).distinct()
 
+        if localisation:
+            queryset = queryset.filter(zone_couverture__icontains=localisation)
+
         return queryset
-
-    def calculate_distance(self, lat1, lon1, lat2, lon2):
-        R = 6371000  # Rayon de la Terre en mètres
-        phi1 = math.radians(lat1)
-        phi2 = math.radians(lat2)
-        delta_phi = math.radians(lat2 - lat1)
-        delta_lambda = math.radians(lon2 - lon1)
-
-        a = math.sin(delta_phi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-        distance = R * c
-        return distance
-
 
 
 
@@ -159,3 +121,36 @@ class AvisParPrestataireListView(generics.ListAPIView):
     def get_queryset(self):
         prestataire_id = self.kwargs['prestataire_id']
         return Avis.objects.filter(prestataire_id=prestataire_id).order_by('-date_creation')
+    
+
+from rest_framework import generics, permissions
+from .serializers import PrestataireInscriptionSerializer
+
+class PrestataireInscriptionView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PrestataireInscriptionSerializer(data=request.data)
+        if serializer.is_valid():
+            prestataire = serializer.save()
+            return Response({'id': prestataire.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Prestataire
+
+class PrestatairesAccueilView(APIView):
+    """
+    Vue pour afficher les prestataires en vedette (Class-Based View).
+    """
+    def get(self, request):
+        """
+        Gère les requêtes GET pour récupérer et afficher les prestataires en vedette.
+        """
+        try:
+            prestataires_en_vedette = Prestataire.objects.filter(is_featured=True).values('id', 'nom')
+            return Response(list(prestataires_en_vedette))
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

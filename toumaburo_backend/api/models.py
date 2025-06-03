@@ -1,21 +1,30 @@
 from django.db import models
 from django.contrib.auth.models import User
-
 from django.db import models
 
-class Prestataire(models.Model):
-    nom = models.CharField(max_length=100)
-    telephone = models.CharField(max_length=20, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-    etablissement = models.CharField(max_length=255, verbose_name="Établissement principal")
-    zone_couverture_rayon = models.FloatField(blank=True, null=True, verbose_name="Rayon de couverture (km)")
-    # ... autres champs du prestataire
+class Service(models.Model):
+    nom = models.CharField(max_length=100, unique=True)
+    # ... autres champs du modèle Service ...
 
     def __str__(self):
         return self.nom
 
-class Service(models.Model):
-    nom = models.CharField(max_length=100, unique=True)
+from django.db import models
+from django.contrib.auth.models import User
+from .models import Service # Assurez-vous que Service est importé correctement
+
+class Prestataire(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)  # Ajoutez ce champ
+    email = models.EmailField(unique=True, blank=True, null=True)
+    telephone = models.CharField(max_length=20, blank=True, null=True)
+    etablissement = models.CharField(max_length=200, blank=True, null=True)
+    services_offerts = models.ManyToManyField(Service, related_name='prestataires')
+    zone_couverture = models.CharField(max_length=200, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    is_featured = models.BooleanField(default=False)  # Ajoutez ce champ
+
 
     def __str__(self):
         return self.nom
