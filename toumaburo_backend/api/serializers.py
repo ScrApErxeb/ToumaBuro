@@ -13,23 +13,15 @@ class ServiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'nom']
 
 class PrestataireSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
-    services_offerts = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Service.objects.all()
-    )
-    # services_offerts_names = serializers.SerializerMethodField() # Alternative pour afficher les noms
+    services_offerts = serializers.SerializerMethodField()
 
     class Meta:
         model = Prestataire
         fields = '__all__'
-        # exclude = ['service_principal'] # Si vous aviez un ancien champ
 
-    # def get_services_offerts_names(self, instance):
-    #     return [service.nom for service in instance.services_offerts.all()]
+    def get_services_offerts(self, obj):
+        return obj.services_offerts.values('id', 'nom')
 
-
-    
 class OffreServiceSerializer(serializers.ModelSerializer):
     prestataire = PrestataireSerializer(read_only=True)
     service = ServiceSerializer(read_only=True)
@@ -48,7 +40,6 @@ class AvisSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'prestataire', 'utilisateur_nom', 'date_creation', 'date_modification']
         extra_kwargs = {'prestataire': {'write_only': True}} # L'ID du prestataire est fourni lors de la création/mise à jour
 
-
 class DemandeServiceSerializer(serializers.ModelSerializer):
     utilisateur = UserSerializer(read_only=True)
     service = ServiceSerializer(read_only=True)
@@ -58,37 +49,36 @@ class DemandeServiceSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('utilisateur',) # L'utilisateur sera déterminé par la requête
 
-
-from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Prestataire
-
-from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import Prestataire
-
 class PrestataireInscriptionSerializer(serializers.Serializer):
     nom = serializers.CharField(max_length=100)
     prenom = serializers.CharField(max_length=100)
-    telephone = serializers.CharField(max_length=20) # Utilisation du nom 'telephone' pour correspondre au modèle
+    telephone = serializers.CharField(max_length=20)
     mot_de_passe = serializers.CharField(write_only=True, min_length=6)
+    services_offerts = serializers.ListField(child=serializers.CharField(max_length=100), max_length=3) # Nouveau champ dans le sérialiseur
 
     def create(self, validated_data):
+        telephone = validated_data['telephone']
+        if User.objects.filter(username=telephone).exists():
+            raise serializers.ValidationError({"telephone": "Ce numéro de téléphone est déjà enregistré."})
+
         user = User.objects.create_user(
-            username=validated_data['telephone'], # Utilise le numéro de téléphone comme nom d'utilisateur
+            username=telephone,
             password=validated_data['mot_de_passe']
         )
         prestataire = Prestataire.objects.create(
             user=user,
             nom=validated_data['nom'],
             prenom=validated_data['prenom'],
-            telephone=validated_data['telephone'], # Assigne directement la valeur au champ 'telephone' du modèle
-            email=validated_data.get('email'), # Si vous gérez l'email dans le formulaire
-            etablissement=validated_data.get('etablissement'), # Si vous gérez l'établissement dans le formulaire
-            zone_couverture=validated_data.get('zone_couverture'), # Si vous gérez la zone de couverture dans le formulaire
-            description=validated_data.get('description'), # Si vous gérez la description dans le formulaire
-            # Les services offerts (ManyToManyField) nécessitent une gestion spéciale après la création
+            telephone=telephone,
+            # ... autres champs
         )
+
+        # Gestion des services offerts
+        services_data = validated_data.get('services_offerts', [])
+        for service_name in services_data:
+            service, created = Service.objects.get_or_create(nom=service_name.strip())
+            prestataire.services_offerts.add(service)
+
         return prestataire
 
     def update(self, instance, validated_data):

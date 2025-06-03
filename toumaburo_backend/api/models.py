@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db import models
 
 class Service(models.Model):
     nom = models.CharField(max_length=100, unique=True)
@@ -8,10 +7,6 @@ class Service(models.Model):
 
     def __str__(self):
         return self.nom
-
-from django.db import models
-from django.contrib.auth.models import User
-from .models import Service # Assurez-vous que Service est importé correctement
 
 class Prestataire(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -21,10 +16,9 @@ class Prestataire(models.Model):
     telephone = models.CharField(max_length=20, blank=True, null=True)
     etablissement = models.CharField(max_length=200, blank=True, null=True)
     services_offerts = models.ManyToManyField(Service, related_name='prestataires')
-    zone_couverture = models.CharField(max_length=200, blank=True, null=True)
+    zone_couverture = models.CharField(max_length=200, blank=True, null=True, default='Ouagadougou') # Ajout de default
     description = models.TextField(blank=True, null=True)
-    is_featured = models.BooleanField(default=False)  # Ajoutez ce champ
-
+    is_featured = models.BooleanField(default=False)   # Ajoutez ce champ
 
     def __str__(self):
         return self.nom
@@ -40,9 +34,6 @@ class OffreService(models.Model):
 
     def __str__(self):
         return f"{self.prestataire.nom} - {self.service.nom}"
-
-from django.db import models
-from django.contrib.auth.models import User
 
 class Avis(models.Model):
     prestataire = models.ForeignKey(Prestataire, on_delete=models.CASCADE, related_name='avis')
@@ -73,4 +64,4 @@ class DemandeService(models.Model):
     def __str__(self):
         return f"Demande de {self.utilisateur.username} pour {self.service.nom}"
 
-        # cool
+    # cool
