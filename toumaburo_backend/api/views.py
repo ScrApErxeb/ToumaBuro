@@ -154,3 +154,46 @@ class PrestatairesAccueilView(APIView):
             return Response(list(prestataires_en_vedette))
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+        
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import Prestataire
+from .serializers import ServiceSerializer
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = self.user
+
+        # Ajouter les infos utilisateur
+        data['user'] = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+        }
+
+        # Ajouter les infos prestataire
+        try:
+            prestataire = Prestataire.objects.get(user=user)
+            data['prestataire'] = {
+                'id': prestataire.id,
+                'nom': prestataire.nom,
+                'prenom': prestataire.prenom,
+                'telephone': prestataire.telephone,
+                'email': prestataire.email,
+                'etablissement': prestataire.etablissement,
+                'zone_couverture': prestataire.zone_couverture,
+                'description': prestataire.description,
+                'is_featured': prestataire.is_featured,
+                'services_offerts': ServiceSerializer(prestataire.services_offerts.all(), many=True).data
+            }
+        except Prestataire.DoesNotExist:
+            data['prestataire'] = None
+
+        return data
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

@@ -18,7 +18,7 @@ class Prestataire(models.Model):
     services_offerts = models.ManyToManyField(Service, related_name='prestataires')
     zone_couverture = models.CharField(max_length=200, blank=True, null=True, default='Ouagadougou') # Ajout de default
     description = models.TextField(blank=True, null=True)
-    is_featured = models.BooleanField(default=False)   # Ajoutez ce champ
+    is_featured = models.BooleanField(default=True)   # Ajoutez ce champ
 
     def __str__(self):
         return self.nom
